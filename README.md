@@ -4,16 +4,23 @@ A powerful CLI tool for managing and applying configuration files across differe
 
 ## Features
 
-- **🔧 Multi-Format Support**: INI, YAML, TOML, JSON configuration files
+### Core Capabilities
+
+- **🔧 Multi-Format Support**: INI, YAML, TOML, JSON, XML configuration files
 - **📋 CUE Configuration**: Type-safe configuration definition with schema validation
 - **🎯 Target Management**: Apply configurations to files, dconf, systemd, sed operations
-- **🔄 Deep Merging**: Merge multiple CUE files with conflict resolution and source tracking
+- **🔄 Deep Merging**: Automatically merge multiple CUE files with conflict resolution
 - **📊 Status Checking**: Compare desired vs actual configuration state
-- **💾 Backup Support**: Automatic backup creation with checksums
-- **🎨 Modern CLI**: Clean interface with subcommands using Kong framework
-- **🔍 Configuration Discovery**: List and inspect configured targets
-- **⚙️ Format-Specific Options**: INI spacing control, indentation, pretty printing, etc.
-- **🔍 Sed Operations**: Apply sed commands to any text file for precise edits
+- **💾 Automatic Backups**: Optional backup creation with checksums before modifications
+- **🎨 Clean CLI**: Modern interface with subcommands (apply, status, list, generate)
+
+### Configuration Features
+
+- **Variables**: Define and reuse values across targets with `variables: { ... }`
+- **Hooks**: Execute custom scripts before/after applying configurations
+- **Multi-File**: Split configurations across multiple CUE files for better organization
+- **Format Options**: Control spacing, indentation, pretty printing per format
+- **Discovery**: List and inspect all configured targets in multiple output formats
 
 ## Usage
 
@@ -84,6 +91,9 @@ A powerful CLI tool for managing and applying configuration files across differe
 
 # Generate with custom name and output
 ./confedit generate --type file --name my-config --output my-config.cue source.yaml target.yaml
+
+# Specify file format explicitly
+./confedit generate --type file --file-format ini source.ini target.ini
 ```
 
 **Show version:**
@@ -94,163 +104,117 @@ A powerful CLI tool for managing and applying configuration files across differe
 
 ### Configuration Structure
 
-Configurations are defined using CUE files with the following structure. See the complete examples in the [`testdata/`](testdata/) directory.
+Configurations are defined using CUE files. See complete examples in [`testdata/`](testdata/).
 
 **Basic structure:**
 
-- **Variables**: Define reusable values with `variables: { ... }`
-- **Targets**: Configuration targets with `targets: [ ... ]`
-- **Hooks**: Optional pre/post commands with `hooks: { ... }`
+- `variables: { ... }` - Define reusable values across targets
+- `targets: [ ... ]` - Configuration targets (file, dconf, systemd, sed)
+- `hooks: { ... }` - Optional pre/post apply commands
 
-### Multi-File Configuration
-
-You can split configurations across multiple CUE files for better organization. The tool automatically merges configurations with the same target name.
+**Multi-file support:**
+Split configurations across multiple `.cue` files for better organization. The tool automatically discovers and merges all CUE files in the config directory, merging targets with the same name.
 
 ### Target Types
 
-**File targets** (`type: "file"`):
+**`file`** - Configuration file management
 
-- **Formats**: `ini`, `yaml`, `toml`, `json`, `xml`
-- **Features**: Backup support, ownership/permissions, format-specific options
+- Supported formats: INI, YAML, TOML, JSON, XML
+- Features: Backup support, ownership/permissions control, format-specific options
+- Use cases: Application configs, system settings, any structured file
 
-**dconf targets** (`type: "dconf"`):
+**`dconf`** - GNOME/GTK settings
 
-- **Purpose**: GNOME/GTK application settings
-- **Features**: User-specific or system-wide settings
+- Purpose: Manage GNOME desktop and GTK application settings
+- Features: User-specific or system-wide settings, automatic dconf updates
+- Use cases: Desktop environment configuration, GNOME app preferences
 
-**systemd targets** (`type: "systemd"`):
+**`systemd`** - systemd service configuration
 
-- **Purpose**: systemd service configuration
-- **Features**: Automatic daemon reload, property management
+- Purpose: Manage systemd unit properties and settings
+- Features: Automatic daemon-reload after changes, property management
+- Use cases: Service configuration, unit file modifications
 
-**sed targets** (`type: "sed"`):
+**`sed`** - Text file editing with sed
 
-- **Purpose**: Apply sed commands to any text file for precise edits
-- **Features**: Multiple sed commands, backup support, idempotent operations
+- Purpose: Apply sed commands for precise text file edits
+- Features: Multiple sed operations, backup support, idempotent changes
+- Use cases: Complex find/replace, line insertion/deletion, regex-based edits
 
 ## Examples
 
-For complete working examples, see the [`testdata/`](testdata/) directory which contains real configuration files you can test with:
+Complete working examples are in [`testdata/`](testdata/). All examples can be tested without modifying your system.
 
-### Basic INI Configuration
+### Basic Usage Examples
 
-See [`testdata/01-example-config.cue`](testdata/01-example-config.cue) for a complete example showing:
-
-- INI file target configuration
-- Custom options (spacing control)
-- Content with sections and root-level keys
-- Special INI values (commented keys, deleted keys)
-
-**Test it:**
+**INI file configuration** - [`testdata/01-example-config.cue`](testdata/01-example-config.cue)
 
 ```bash
 ./confedit list -c testdata/01-example-config.cue
 ./confedit status -c testdata/01-example-config.cue
 ```
 
-### Multi-Target Configuration with Variables
-
-See [`testdata/variables-config.cue`](testdata/variables-config.cue) for an example showing:
-
-- Variable definitions and usage
-- Variable interpolation in target configurations
-- Shared configuration patterns
-
-**Test it:**
+**Variables** - [`testdata/variables-config.cue`](testdata/variables-config.cue)
 
 ```bash
 ./confedit list -c testdata/variables-config.cue
 ```
 
-### Multi-File Merging
-
-The testdata directory demonstrates automatic file merging:
-
-- [`testdata/01-example-config.cue`](testdata/01-example-config.cue)
-- [`testdata/02-example-config.cue`](testdata/02-example-config.cue)
-- [`testdata/variables-config.cue`](testdata/variables-config.cue)
-
-**Test merging:**
+**Multi-file merging** - Automatically merges all `.cue` files in a directory
 
 ```bash
-# Automatically discovers and merges all .cue files in the directory
 ./confedit list -c testdata/
 ```
 
-### Hooks Configuration
-
-See [`testdata/hooks-config/hooks.cue`](testdata/hooks-config/hooks.cue) for an example showing:
-
-- Pre-apply and post-apply hooks
-- Shell script execution
-- Environment validation
-- Error handling
-
-**Test it:**
+**Hooks** - Pre/post apply commands - [`testdata/hooks-config/`](testdata/hooks-config/)
 
 ```bash
 ./confedit list -c testdata/hooks-config/
 ./confedit apply -c testdata/hooks-config/ --dry-run
 ```
 
-### Sed Operations
-
-See [`testdata/sed-example-config.cue`](testdata/sed-example-config.cue) for an example showing:
-
-- Sed command configuration
-- Multiple sed operations (find/replace, delete, insert)
-- Backup support
-- Variable usage in sed targets
-
-**Test it:**
+**Sed operations** - [`testdata/sed-example-config.cue`](testdata/sed-example-config.cue)
 
 ```bash
 ./confedit list -c testdata/sed-example-config.cue
-./confedit status -c testdata/sed-example-config.cue
 ./confedit apply -c testdata/sed-example-config.cue --dry-run
 ```
 
-### Real-World Usage Patterns
+### Common Workflows
 
-**Check what would change:**
+**Safe configuration changes:**
 
 ```bash
-# See what changes would be made using testdata examples
+# 1. Check what would change
 ./confedit status -c testdata/
 
+# 2. Preview changes (dry-run)
+./confedit apply --dry-run -c testdata/
+
+# 3. Apply with backups
+./confedit apply --backup -c testdata/
+```
+
+**Working with specific targets:**
+
+```bash
 # Check specific targets only
 ./confedit status example-ini-config -c testdata/
 
-# Use different config directory
-./confedit status -c ./testdata/hooks-config
-```
-
-**Apply configurations safely:**
-
-```bash
-# Preview changes first using testdata
-./confedit apply --dry-run -c testdata/
-
-# Apply with backups
-./confedit apply --backup -c testdata/
-
 # Apply only specific targets
 ./confedit apply example-ini-config --backup -c testdata/
-
-# Use hooks configuration
-./confedit apply -c testdata/hooks-config/ --dry-run
 ```
 
-**Inspect configuration:**
+**Export configuration information:**
 
 ```bash
-# List all targets from testdata
+# List all targets (table format)
 ./confedit list -c testdata/
 
-# Show detailed information
+# Detailed information
 ./confedit list --long -c testdata/
 
-# Export as JSON for processing
+# Export as JSON
 ./confedit list --format json -c testdata/ > targets.json
 
 # Export as YAML
@@ -285,9 +249,9 @@ go build .
 go test ./...
 ```
 
-**Dependencies:**
+**Requirements:**
 
-- Go 1.24+
+- Go 1.25+
 
 ## Docker
 

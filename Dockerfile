@@ -1,5 +1,5 @@
 # Build stage
-FROM goreleaser/goreleaser:v2.9.0 AS builder
+FROM goreleaser/goreleaser:v2.12.5 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -15,7 +15,7 @@ ENV GORELEASER_CURRENT_TAG=$VERSION
 RUN goreleaser build --snapshot --clean --single-target
 
 # Final stage
-FROM alpine:3.21
+FROM alpine:3.22
 
 # Install ca-certificates for HTTPS requests
 RUN apk add --no-cache ca-certificates
