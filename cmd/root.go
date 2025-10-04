@@ -31,7 +31,7 @@ type CLI struct {
 	Apply    ApplyCmd    `cmd:"" help:"Apply configuration to target system"`
 	Status   StatusCmd   `cmd:"" help:"Check configuration status on target system"`
 	List     ListCmd     `cmd:"" help:"List configured targets"`
-	Generate GenerateCmd `cmd:"" help:"Generate CUE config from diff between two files"`
+	Generate GenerateCmd `cmd:"" help:"Generate CUE config from diff between source and target of specified type"`
 }
 
 // AfterApply is called after Kong parses the CLI but before the command runs
