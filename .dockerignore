@@ -1,0 +1,31 @@
+# Documentation
+README.md
+*.md
+
+# Build artifacts
+/bin/
+/dist/
+/confedit*
+
+# Development data
+/testdata/
+
+# IDE
+.vscode/
+.idea/
+
+# Mise
+.mise.toml
+mise.toml
+
+# GitHub
+.github/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
