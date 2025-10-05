@@ -1,4 +1,4 @@
-package config
+package loader
 
 import (
 	"os"
@@ -32,7 +32,7 @@ func (s *ConfigLoaderTestSuite) TearDownTest() {
 	}
 }
 
-func (s *ConfigLoaderTestSuite) TestNewCueConfigLoader() {
+func (s *ConfigLoaderTestSuite) TestNewCueDataLoader() {
 	tests := []struct {
 		name           string
 		configPath     string
@@ -62,7 +62,7 @@ func (s *ConfigLoaderTestSuite) TestNewCueConfigLoader() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			loader := NewCueConfigLoader(tt.configPath, tt.schemaFilePath...)
+			loader := NewCueDataLoader(tt.configPath, tt.schemaFilePath...)
 
 			assert.NotNil(s.T(), loader, "expected loader to be created")
 			assert.Equal(s.T(), tt.configPath, loader.configPath, "configPath should match")
@@ -121,7 +121,7 @@ func (s *ConfigLoaderTestSuite) TestCollectCueFiles() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			loader := NewCueConfigLoader(tt.configPath)
+			loader := NewCueDataLoader(tt.configPath)
 			files, err := loader.collectCueFiles()
 
 			if tt.expectError {
@@ -143,7 +143,7 @@ func (s *ConfigLoaderTestSuite) TestCollectCueFiles() {
 	}
 }
 
-func TestCueConfigLoader_LoadConfiguration(t *testing.T) {
+func TestCueConfigLoader_Load(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create a simple test CUE file
@@ -196,8 +196,8 @@ variables: {
 
 	for _, test := range tests {
 		t.Run(test.name, func(subT *testing.T) {
-			loader := NewCueConfigLoader(test.configPath)
-			config, err := loader.LoadConfiguration()
+			loader := NewCueDataLoader(test.configPath)
+			config, err := loader.Load()
 
 			if test.expectError {
 				assert.Error(subT, err, "expected error")
@@ -268,8 +268,8 @@ targets: [
 	assert.NoError(t, os.WriteFile(file1, []byte(file1Content), 0644))
 	assert.NoError(t, os.WriteFile(file2, []byte(file2Content), 0644))
 
-	loader := NewCueConfigLoader(tmpDir)
-	config, err := loader.LoadConfiguration()
+	loader := NewCueDataLoader(tmpDir)
+	config, err := loader.Load()
 	assert.NoError(t, err, "unexpected error")
 
 	// Should have only one target (merged)
@@ -351,8 +351,8 @@ this is invalid cue syntax
 
 	for _, test := range tests {
 		t.Run(test.name, func(subT *testing.T) {
-			loader := NewCueConfigLoader(test.configPath)
-			err := loader.ValidateConfiguration()
+			loader := NewCueDataLoader(test.configPath)
+			err := loader.Validate()
 
 			if test.expectError {
 				assert.Error(subT, err, "expected validation error for invalid config")
@@ -412,20 +412,20 @@ targets: [
 	assert.NoError(t, os.WriteFile(invalidCueFile, []byte(invalidContent), 0644))
 
 	t.Run("valid config passes validation", func(subT *testing.T) {
-		loader := NewCueConfigLoader(validCueFile)
+		loader := NewCueDataLoader(validCueFile)
 
 		// Load configuration should succeed with validation
-		config, err := loader.LoadConfiguration()
+		config, err := loader.Load()
 		assert.NoError(subT, err, "expected valid config to load successfully")
 		assert.True(subT, config != nil, "expected config to be returned")
 		assert.Equal(subT, 1, len(config.Targets), "expected 1 target")
 	})
 
 	t.Run("invalid config fails validation", func(subT *testing.T) {
-		loader := NewCueConfigLoader(invalidCueFile)
+		loader := NewCueDataLoader(invalidCueFile)
 
 		// Load configuration should fail due to validation
-		_, err := loader.LoadConfiguration()
+		_, err := loader.Load()
 		assert.Error(subT, err, "expected invalid config to fail validation")
 
 		// Error should mention validation failure
@@ -435,15 +435,40 @@ targets: [
 
 	t.Run("validator always initialized", func(subT *testing.T) {
 		// Test without schema path
-		loader1 := NewCueConfigLoader(validCueFile)
+		loader1 := NewCueDataLoader(validCueFile)
 		assert.True(subT, loader1.validator != nil, "expected validator to be initialized even without schema path")
 
 		// Test with empty schema path
-		loader2 := NewCueConfigLoader(validCueFile, "")
+		loader2 := NewCueDataLoader(validCueFile, "")
 		assert.True(subT, loader2.validator != nil, "expected validator to be initialized with empty schema path")
 
 		// Test with non-existent schema path (should fall back to embedded)
-		loader3 := NewCueConfigLoader(validCueFile, "/non/existent/path")
+		loader3 := NewCueDataLoader(validCueFile, "/non/existent/path")
 		assert.True(subT, loader3.validator != nil, "expected validator to be initialized with fallback to embedded schema")
 	})
+}
+
+func TestCueConfigLoader_WithCustomSchema(t *testing.T) {
+	// Create a temporary schema file for testing
+	schemaFile := "/tmp/test_loader_schema.cue"
+	schemaContent := `package config
+#ConfigTarget: { name: string, type: "file" }
+#SystemConfig: { targets: [...#ConfigTarget] }`
+
+	err := os.WriteFile(schemaFile, []byte(schemaContent), 0644)
+	if err != nil {
+		t.Fatalf("create temporary schema file: %v", err)
+	}
+	defer os.Remove(schemaFile)
+
+	// Test loader with custom schema
+	loader := NewCueDataLoader("./testdata", schemaFile)
+
+	// Verify the loader was created (even if schema validation may fail)
+	if loader == nil {
+		t.Error("Loader should be created even with custom schema")
+	}
+
+	// Verify that validator was initialized (or warning was logged)
+	// This test mainly checks that the API works correctly
 }

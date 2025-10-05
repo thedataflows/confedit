@@ -70,7 +70,7 @@ func (r *ReconciliationEngine) reconcileTarget(target types.AnyTarget) error {
 	}
 
 	// Get current state from the system
-	currentSystemState, err := executor.GetCurrentState(target)
+	currentSystemState, err := executor.CurrentState(target)
 	if err != nil {
 		return fmt.Errorf("get current system state: %w", err)
 	}

@@ -62,7 +62,7 @@ func TestAllFeatures_GetExecutor(t *testing.T) {
 		t.Run(featureType, func(tb *testing.T) {
 			executor, err := registry.Executor(featureType)
 			if err != nil {
-				tb.Fatalf("failed to get executor for %s: %v", featureType, err)
+				tb.Fatalf("get executor for %s: %v", featureType, err)
 			}
 			if executor == nil {
 				tb.Fatalf("executor for %s is nil", featureType)
@@ -87,7 +87,7 @@ func TestAllFeatures_GetFeature(t *testing.T) {
 		t.Run(featureType, func(tb *testing.T) {
 			feature, err := registry.Get(featureType)
 			if err != nil {
-				tb.Fatalf("failed to get feature %s: %v", featureType, err)
+				tb.Fatalf("get feature %s: %v", featureType, err)
 			}
 			if feature == nil {
 				tb.Fatalf("feature %s is nil", featureType)

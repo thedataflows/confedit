@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/thedataflows/confedit/internal/types"
+	"github.com/thedataflows/confedit/internal/utils"
 )
 
 // Config represents the configuration for a file target
@@ -47,10 +48,10 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// Target is a type alias for file-based configuration targets
+// Target is a type alias for file-based targets
 type Target = types.BaseTarget[*Config]
 
-// NewTarget creates a new file configuration target
+// NewTarget creates a new file target
 func NewTarget(name, path, format string) *Target {
 	return &Target{
 		Name:     name,
@@ -69,4 +70,34 @@ func NewTarget(name, path, format string) *Target {
 type INIValue struct {
 	Value   interface{} `json:"value"`
 	Comment string      `json:"comment,omitempty"`
+}
+
+// MergeConfig merges file target configs using deep map merging
+func MergeConfig(existing, newTarget *Config) error {
+	// Merge all the map-based content
+	if err := utils.DeepMerge(existing.Content, newTarget.Content); err != nil {
+		return fmt.Errorf("merge content: %w", err)
+	}
+	if err := utils.DeepMerge(existing.Options, newTarget.Options); err != nil {
+		return fmt.Errorf("merge options: %w", err)
+	}
+
+	// Update scalar fields (new values override existing ones if non-empty)
+	if newTarget.Path != "" {
+		existing.Path = newTarget.Path
+	}
+	if newTarget.Format != "" {
+		existing.Format = newTarget.Format
+	}
+	if newTarget.Owner != "" {
+		existing.Owner = newTarget.Owner
+	}
+	if newTarget.Group != "" {
+		existing.Group = newTarget.Group
+	}
+	if newTarget.Mode != "" {
+		existing.Mode = newTarget.Mode
+	}
+
+	return nil
 }

@@ -18,7 +18,7 @@ func NewExecutor() engine.Executor {
 	return &Executor{}
 }
 
-// Apply applies the configuration changes to dconf
+// Apply applies the changes to dconf
 func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	if diff != nil && diff.IsEmpty() {
 		return nil
@@ -34,7 +34,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	}
 
 	if dconfTarget.GetConfig() == nil {
-		return fmt.Errorf("dconf target configuration is missing")
+		return fmt.Errorf("dconf target is missing")
 	}
 
 	schema := dconfTarget.GetConfig().Schema
@@ -66,7 +66,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	return nil
 }
 
-// Validate checks if the target configuration is valid
+// Validate checks if the target is valid
 func (e *Executor) Validate(target types.AnyTarget) error {
 	if target.GetType() != types.TYPE_DCONF {
 		return fmt.Errorf("expected dconf target, got %s", target.GetType())
@@ -78,7 +78,7 @@ func (e *Executor) Validate(target types.AnyTarget) error {
 	}
 
 	if dconfTarget.GetConfig() == nil {
-		return fmt.Errorf("dconf target configuration is missing")
+		return fmt.Errorf("dconf target is missing")
 	}
 
 	if dconfTarget.GetConfig().Schema == "" {
@@ -87,25 +87,14 @@ func (e *Executor) Validate(target types.AnyTarget) error {
 	return nil
 }
 
-// GetCurrentState retrieves the current state from dconf
-func (e *Executor) GetCurrentState(target types.AnyTarget) (map[string]interface{}, error) {
-	if target.GetType() != types.TYPE_DCONF {
-		return nil, fmt.Errorf("expected dconf target, got %s", target.GetType())
+// CurrentState retrieves the current state from dconf
+func (e *Executor) CurrentState(target types.AnyTarget) (map[string]interface{}, error) {
+	if err := e.Validate(target); err != nil {
+		return nil, err
 	}
 
-	dconfTarget, ok := target.(*Target)
-	if !ok {
-		return nil, fmt.Errorf("target is not a dconf target")
-	}
-
-	if dconfTarget.GetConfig() == nil {
-		return nil, fmt.Errorf("dconf target configuration is missing")
-	}
-
+	dconfTarget := target.(*Target)
 	schema := dconfTarget.GetConfig().Schema
-	if schema == "" {
-		return make(map[string]interface{}), fmt.Errorf("dconf schema not specified")
-	}
 
 	// Get current dconf values for the schema
 	cmd := exec.Command("dconf", "dump", schema)

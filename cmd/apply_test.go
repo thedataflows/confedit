@@ -26,25 +26,25 @@ func (s *ApplyCmdTestSuite) TestBackupFlag_FileTarget() {
 		expectedBackup bool
 	}{
 		{
-			name:           "backup flag true overrides false config",
+			name:           "backup flag true overrides false",
 			backupFlag:     true,
 			originalBackup: false,
 			expectedBackup: true,
 		},
 		{
-			name:           "backup flag true with true config",
+			name:           "backup flag true with true",
 			backupFlag:     true,
 			originalBackup: true,
 			expectedBackup: true,
 		},
 		{
-			name:           "backup flag false preserves original config",
+			name:           "backup flag false preserves original",
 			backupFlag:     false,
 			originalBackup: true,
 			expectedBackup: true,
 		},
 		{
-			name:           "backup flag false with false config",
+			name:           "backup flag false with false",
 			backupFlag:     false,
 			originalBackup: false,
 			expectedBackup: false,

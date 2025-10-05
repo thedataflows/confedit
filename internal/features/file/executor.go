@@ -71,7 +71,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 
 	// Create backup if requested
 	if fileTarget.GetConfig().Backup {
-		if err := CreateBackup(fileTarget.GetConfig().Path); err != nil {
+		if err := utils.CreateBackup(fileTarget.GetConfig().Path); err != nil {
 			return fmt.Errorf("create backup: %w", err)
 		}
 	}
@@ -82,7 +82,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	}
 
 	// Get current file state to preserve unmanaged keys
-	currentState, err := e.GetCurrentState(target)
+	currentState, err := e.CurrentState(target)
 	if err != nil {
 		return fmt.Errorf("get current state: %w", err)
 	}
@@ -115,7 +115,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	return nil
 }
 
-// Validate checks if the target configuration is valid
+// Validate checks if the target is valid
 func (e *Executor) Validate(target types.AnyTarget) error {
 	if target.GetType() != types.TYPE_FILE {
 		return fmt.Errorf("expected file target, got %s", target.GetType())
@@ -127,7 +127,7 @@ func (e *Executor) Validate(target types.AnyTarget) error {
 	}
 
 	if fileTarget.GetConfig() == nil {
-		return fmt.Errorf("file target configuration is missing")
+		return fmt.Errorf("file target is missing")
 	}
 
 	// Check if format is supported
@@ -147,20 +147,13 @@ func (e *Executor) Validate(target types.AnyTarget) error {
 	return nil
 }
 
-// GetCurrentState retrieves the current state of the target file
-func (e *Executor) GetCurrentState(target types.AnyTarget) (map[string]interface{}, error) {
-	if target.GetType() != types.TYPE_FILE {
-		return nil, fmt.Errorf("expected file target, got %s", target.GetType())
+// CurrentState retrieves the current state of the target file
+func (e *Executor) CurrentState(target types.AnyTarget) (map[string]interface{}, error) {
+	if err := e.Validate(target); err != nil {
+		return nil, err
 	}
 
-	fileTarget, ok := target.(*Target)
-	if !ok {
-		return nil, fmt.Errorf("target is not a file target")
-	}
-
-	if fileTarget.GetConfig() == nil {
-		return nil, fmt.Errorf("file target configuration is missing")
-	}
+	fileTarget := target.(*Target)
 
 	if _, err := os.Stat(fileTarget.GetConfig().Path); os.IsNotExist(err) {
 		return make(map[string]interface{}), nil

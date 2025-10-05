@@ -18,7 +18,7 @@ import (
 
 // StatusCmd performs status checks on the target system
 type StatusCmd struct {
-	Targets []string `arg:"" optional:"" help:"Rest of the arguments are a list of target configuration names"`
+	Targets []string `arg:"" optional:"" help:"Rest of the arguments are a list of target names"`
 }
 
 func (c *StatusCmd) Run(ctx *kong.Context, cli *CLI) error {
@@ -50,7 +50,7 @@ func (c *StatusCmd) Run(ctx *kong.Context, cli *CLI) error {
 
 	// Summary
 	if hasChanges {
-		log.Warnf(PKG_CMD, "Configuration drift detected - some targets need updates")
+		log.Warnf(PKG_CMD, "Drift detected - some targets need updates")
 	} else {
 		log.Infof(PKG_CMD, "All targets are in sync")
 	}
@@ -72,7 +72,7 @@ func (c *StatusCmd) checkTargetStatus(target types.AnyTarget, rec reconciler.Rec
 	}
 
 	// Get current state from the system
-	currentSystemState, err := executor.GetCurrentState(target)
+	currentSystemState, err := executor.CurrentState(target)
 	if err != nil {
 		return false, fmt.Errorf("get current system state: %w", err)
 	}

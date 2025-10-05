@@ -388,7 +388,7 @@ func TestINIWrapper_RoundTrip(tst *testing.T) {
 			// Read original file
 			originalData, err := os.ReadFile(filename)
 			if err != nil {
-				t.Fatalf("Failed to read test file: %v", err)
+				t.Fatalf("read test file: %v", err)
 			}
 
 			wrapper := NewINIWrapper()
@@ -487,7 +487,7 @@ key3 = value3`
 
 	data, err := wrapper.Parse([]byte(initialContent))
 	if err != nil {
-		t.Fatalf("Failed to parse: %v", err)
+		t.Fatalf("parse: %v", err)
 	}
 
 	// Mark key2 for deletion
@@ -504,7 +504,7 @@ key3 = value3`
 	var buf strings.Builder
 	err = wrapper.Serialize(data, &buf)
 	if err != nil {
-		t.Fatalf("Failed to serialize: %v", err)
+		t.Fatalf("serialize: %v", err)
 	}
 
 	result := buf.String()
@@ -542,7 +542,7 @@ func TestINIWrapper_DeletedKeysFromScratch(t *testing.T) {
 	var buf strings.Builder
 	err := wrapper.Serialize(data, &buf)
 	if err != nil {
-		t.Fatalf("Failed to serialize: %v", err)
+		t.Fatalf("serialize: %v", err)
 	}
 
 	result := buf.String()

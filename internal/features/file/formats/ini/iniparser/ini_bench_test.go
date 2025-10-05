@@ -19,7 +19,7 @@ func generateLargeINIContent(sections, keysPerSection int) string {
 
 	for s := range sections {
 		_, _ = builder.WriteString(fmt.Sprintf("[section_%d]\n", s))
-		_, _ = builder.WriteString(fmt.Sprintf("# Section %d configuration\n", s))
+		_, _ = builder.WriteString(fmt.Sprintf("# Section %d comment\n", s))
 
 		for k := range keysPerSection {
 			_, _ = builder.WriteString(fmt.Sprintf("key_%d_%d = value_%d_%d # inline comment\n", s, k, s, k))
@@ -318,7 +318,7 @@ func loadTestFileForBench(b *testing.B, filename string) string {
 	path := filepath.Join("testdata", filename)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		b.Fatalf("Failed to load test file %s: %v", filename, err)
+		b.Fatalf("load test file %s: %v", filename, err)
 	}
 	return string(data)
 }

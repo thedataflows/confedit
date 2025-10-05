@@ -24,7 +24,7 @@ func TestDconfFeature_Executor(t *testing.T) {
 	}
 }
 
-func TestDconfFeature_ValidateConfig(t *testing.T) {
+func TestDconfFeature_Validate(t *testing.T) {
 	feature := dconf.New()
 
 	tests := []struct {
@@ -48,9 +48,9 @@ func TestDconfFeature_ValidateConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(tb *testing.T) {
-			err := feature.ValidateConfig(tt.config)
+			err := feature.Validate(tt.config)
 			if (err != nil) != tt.wantErr {
-				tb.Errorf("ValidateConfig() error = %v, wantErr %v", err, tt.wantErr)
+				tb.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

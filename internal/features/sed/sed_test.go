@@ -24,7 +24,7 @@ func TestSedFeature_Executor(t *testing.T) {
 	}
 }
 
-func TestSedFeature_ValidateConfig(t *testing.T) {
+func TestSedFeature_Validate(t *testing.T) {
 	feature := sed.New()
 
 	tests := []struct {
@@ -58,9 +58,9 @@ func TestSedFeature_ValidateConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(tb *testing.T) {
-			err := feature.ValidateConfig(tt.config)
+			err := feature.Validate(tt.config)
 			if (err != nil) != tt.wantErr {
-				tb.Errorf("ValidateConfig() error = %v, wantErr %v", err, tt.wantErr)
+				tb.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

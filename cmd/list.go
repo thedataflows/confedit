@@ -8,33 +8,32 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/goccy/go-yaml"
-	"github.com/thedataflows/confedit/internal/config"
 	"github.com/thedataflows/confedit/internal/features/dconf"
 	"github.com/thedataflows/confedit/internal/features/file"
 	"github.com/thedataflows/confedit/internal/features/systemd"
+	"github.com/thedataflows/confedit/internal/loader"
 	"github.com/thedataflows/confedit/internal/types"
 	log "github.com/thedataflows/go-lib-log"
 )
 
-// ListCmd lists configured targets
+// ListCmd lists targets
 type ListCmd struct {
 	Long   bool   `short:"l" help:"Show detailed information about targets"`
 	Format string `short:"f" default:"table" enum:"table,json,yaml" help:"Output format (table, json, yaml)"`
 }
 
 func (c *ListCmd) Run(ctx *kong.Context, cli *CLI) error {
-	log.Infof(PKG_CMD, "Listing configured targets")
+	log.Infof(PKG_CMD, "Listing targets")
 	log.Debugf(PKG_CMD, "List command options: %+v; context: %+v", cli, ctx.Args)
 
-	// Initialize loader to get configuration
-	loader := config.NewCueConfigLoader(cli.Config, cli.Schema)
-	systemConfig, err := loader.LoadConfiguration()
+	l := loader.NewCueDataLoader(cli.Config, cli.Schema)
+	systemConfig, err := l.Load()
 	if err != nil {
-		return fmt.Errorf("load configuration: %w", err)
+		return fmt.Errorf("load data: %w", err)
 	}
 
 	if len(systemConfig.Targets) == 0 {
-		fmt.Println("No targets configured.")
+		fmt.Println("No targets found.")
 		return nil
 	}
 

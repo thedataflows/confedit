@@ -8,9 +8,9 @@ import (
 
 	goSed "github.com/rwtodd/Go.Sed/sed"
 	"github.com/thedataflows/confedit/internal/engine"
-	"github.com/thedataflows/confedit/internal/features/file"
 	"github.com/thedataflows/confedit/internal/state"
 	"github.com/thedataflows/confedit/internal/types"
+	"github.com/thedataflows/confedit/internal/utils"
 )
 
 // Executor implements the engine.Executor interface for sed targets
@@ -37,7 +37,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	}
 
 	if sedTarget.GetConfig() == nil {
-		return fmt.Errorf("sed target configuration is missing")
+		return fmt.Errorf("sed target is missing")
 	}
 
 	config := sedTarget.GetConfig()
@@ -51,7 +51,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 
 	// Create backup if requested
 	if config.Backup {
-		if err := file.CreateBackup(config.Path); err != nil {
+		if err := utils.CreateBackup(config.Path); err != nil {
 			return fmt.Errorf("create backup: %w", err)
 		}
 	}
@@ -84,7 +84,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	return nil
 }
 
-// Validate checks if the target configuration is valid
+// Validate checks if the target is valid
 func (e *Executor) Validate(target types.AnyTarget) error {
 	if target.GetType() != types.TYPE_SED {
 		return fmt.Errorf("expected sed target, got %s", target.GetType())
@@ -96,7 +96,7 @@ func (e *Executor) Validate(target types.AnyTarget) error {
 	}
 
 	if sedTarget.GetConfig() == nil {
-		return fmt.Errorf("sed target configuration is missing")
+		return fmt.Errorf("sed target is missing")
 	}
 
 	config := sedTarget.GetConfig()
@@ -118,25 +118,14 @@ func (e *Executor) Validate(target types.AnyTarget) error {
 	return nil
 }
 
-// GetCurrentState retrieves the current state of the target file
-func (e *Executor) GetCurrentState(target types.AnyTarget) (map[string]interface{}, error) {
-	if target.GetType() != types.TYPE_SED {
-		return nil, fmt.Errorf("expected sed target, got %s", target.GetType())
+// CurrentState retrieves the current state of the target file
+func (e *Executor) CurrentState(target types.AnyTarget) (map[string]interface{}, error) {
+	if err := e.Validate(target); err != nil {
+		return nil, err
 	}
 
-	sedTarget, ok := target.(*Target)
-	if !ok {
-		return nil, fmt.Errorf("target is not a sed target")
-	}
-
-	if sedTarget.GetConfig() == nil {
-		return nil, fmt.Errorf("sed target configuration is missing")
-	}
-
+	sedTarget := target.(*Target)
 	config := sedTarget.GetConfig()
-	if config.Path == "" {
-		return nil, fmt.Errorf("sed target path is required")
-	}
 
 	// Read current file content
 	content, err := os.ReadFile(config.Path)

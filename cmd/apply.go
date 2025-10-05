@@ -9,7 +9,7 @@ import (
 
 // ApplyCmd performs edit operations on given files
 type ApplyCmd struct {
-	Targets []string `arg:"" optional:"" help:"Rest of the arguments are a list of target configuration names"`
+	Targets []string `arg:"" optional:"" help:"Rest of the arguments are a list of target names"`
 	Force   bool     `help:"Force apply even if validation fails"`
 	Backup  bool     `help:"Create backup of files before modification" default:"true"`
 }
@@ -28,7 +28,7 @@ func (c *ApplyCmd) Run(ctx *kong.Context, cli *CLI) error {
 		return err
 	}
 
-	// Validate configuration
+	// Validate
 	if err := cmdCtx.Reconciler.Validate(cmdCtx.Targets); err != nil && !c.Force {
 		return fmt.Errorf("validation failed: %w", err)
 	}
@@ -40,7 +40,7 @@ func (c *ApplyCmd) Run(ctx *kong.Context, cli *CLI) error {
 		}
 	}
 
-	// Apply configuration
+	// Reconcile and Apply
 	if err := cmdCtx.Reconciler.Reconcile(cmdCtx.Targets); err != nil {
 		return fmt.Errorf("reconciliation failed: %w", err)
 	}

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/thedataflows/confedit/internal/config"
 	"github.com/thedataflows/confedit/internal/features"
 	"github.com/thedataflows/confedit/internal/features/dconf"
 	"github.com/thedataflows/confedit/internal/features/file"
 	"github.com/thedataflows/confedit/internal/features/sed"
 	"github.com/thedataflows/confedit/internal/features/systemd"
+	"github.com/thedataflows/confedit/internal/loader"
 	"github.com/thedataflows/confedit/internal/reconciler"
 	"github.com/thedataflows/confedit/internal/state"
 	"github.com/thedataflows/confedit/internal/types"
@@ -19,7 +19,7 @@ import (
 type CommandContext struct {
 	StateManager *state.Manager
 	Reconciler   reconciler.Reconciler
-	Loader       *config.CueConfigLoader
+	Loader       *loader.CueDataLoader
 	SystemConfig *types.SystemConfig
 	Targets      []types.AnyTarget
 	HookExecutor *reconciler.HookExecutor
@@ -44,15 +44,14 @@ func InitializeCommand(cli *CLI, currentTargets []string, dryRunOverride *bool, 
 
 	// Initialize components
 	stateManager := state.NewManager(cli.StateDir)
-	loader := config.NewCueConfigLoader(cli.Config, cli.Schema)
+	l := loader.NewCueDataLoader(cli.Config, cli.Schema)
 	hookExecutor := reconciler.NewHookExecutor(dryRun)
 
 	// Create reconciler with feature registry
 	registry := initializeFeatureRegistry()
 	rec := reconciler.NewReconciliationEngine(registry, stateManager, dryRun)
 
-	// Load configuration
-	systemConfig, err := loader.LoadConfiguration()
+	systemConfig, err := l.Load()
 	if err != nil {
 		return nil, err
 	}
@@ -73,16 +72,16 @@ func InitializeCommand(cli *CLI, currentTargets []string, dryRunOverride *bool, 
 
 	if len(targets) == 0 {
 		if len(currentTargets) > 0 {
-			return nil, fmt.Errorf("No targets found matching any of: %s", currentTargets)
+			return nil, fmt.Errorf("no targets found matching any of: %s", currentTargets)
 		} else {
-			return nil, fmt.Errorf("No targets configured")
+			return nil, fmt.Errorf("no targets found")
 		}
 	}
 
 	return &CommandContext{
 		StateManager: stateManager,
 		Reconciler:   rec,
-		Loader:       loader,
+		Loader:       l,
 		SystemConfig: systemConfig,
 		Targets:      targets,
 		HookExecutor: hookExecutor,

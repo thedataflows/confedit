@@ -45,8 +45,8 @@ func (f *Feature) NewTarget(name string, config interface{}) (types.AnyTarget, e
 	}, nil
 }
 
-// ValidateConfig validates the systemd-specific configuration
-func (f *Feature) ValidateConfig(config interface{}) error {
+// Validate validates the systemd target
+func (f *Feature) Validate(config interface{}) error {
 	systemdConfig, ok := config.(*Config)
 	if !ok {
 		return fmt.Errorf("invalid config type for systemd target, expected *systemd.Config")

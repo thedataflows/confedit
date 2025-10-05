@@ -16,7 +16,7 @@ func loadTestFile(t *testing.T, filename string) string {
 	path := filepath.Join(testDataDir, filename)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("Failed to load test file %s: %v", filename, err)
+		t.Fatalf("load test file %s: %v", filename, err)
 	}
 	return string(data)
 }
@@ -27,7 +27,7 @@ func getAllTestFiles(t *testing.T) []string {
 	testdataDir := filepath.Join(testDataDir)
 	entries, err := os.ReadDir(testdataDir)
 	if err != nil {
-		t.Fatalf("Failed to read testdata directory: %v", err)
+		t.Fatalf("read testdata directory: %v", err)
 	}
 
 	var files []string

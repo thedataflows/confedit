@@ -1,6 +1,6 @@
-package config
+package loader
 
-// CUE configuration loader
+// CUE data loader
 
 import (
 	"fmt"
@@ -17,31 +17,32 @@ import (
 	"github.com/thedataflows/confedit/internal/features/file"
 	"github.com/thedataflows/confedit/internal/features/sed"
 	"github.com/thedataflows/confedit/internal/features/systemd"
+	"github.com/thedataflows/confedit/internal/schema"
 	"github.com/thedataflows/confedit/internal/types"
 	"github.com/thedataflows/confedit/internal/utils"
 	log "github.com/thedataflows/go-lib-log"
 )
 
-type CueConfigLoader struct {
+type CueDataLoader struct {
 	configPath string
 	ctx        *cue.Context
-	validator  *SchemaValidator
+	validator  *schema.SchemaValidator
 }
 
-func NewCueConfigLoader(configPath string, schemaFilePath ...string) *CueConfigLoader {
-	validator, err := NewSchemaValidator(schemaFilePath...)
+func NewCueDataLoader(configPath string, schemaFilePath ...string) *CueDataLoader {
+	validator, err := schema.NewSchemaValidator(schemaFilePath...)
 	if err != nil {
-		log.Logger().Fatal().Err(err).Msg("Failed to initialize schema validator")
+		log.Logger().Fatal().Err(err).Msg("initialize schema validator")
 	}
 
-	return &CueConfigLoader{
+	return &CueDataLoader{
 		configPath: configPath,
 		ctx:        cuecontext.New(),
 		validator:  validator,
 	}
 }
 
-func (ccl *CueConfigLoader) LoadConfiguration() (*types.SystemConfig, error) {
+func (ccl *CueDataLoader) Load() (*types.SystemConfig, error) {
 	filePaths, err := ccl.collectCueFiles()
 	if err != nil {
 		return nil, fmt.Errorf("collect CUE files: %w", err)
@@ -94,7 +95,7 @@ func (ccl *CueConfigLoader) LoadConfiguration() (*types.SystemConfig, error) {
 	}
 
 	// Validate the configuration
-	if err := ccl.ValidateConfiguration(); err != nil {
+	if err := ccl.Validate(); err != nil {
 		return nil, fmt.Errorf("config validation: %w", err)
 	}
 
@@ -102,7 +103,7 @@ func (ccl *CueConfigLoader) LoadConfiguration() (*types.SystemConfig, error) {
 }
 
 // collectCueFiles gathers all .cue files from the config path (file or directory) in lexicographical order
-func (ccl *CueConfigLoader) collectCueFiles() ([]string, error) {
+func (ccl *CueDataLoader) collectCueFiles() ([]string, error) {
 	stat, err := os.Stat(ccl.configPath)
 	if err != nil {
 		return nil, err
@@ -137,15 +138,15 @@ func (ccl *CueConfigLoader) collectCueFiles() ([]string, error) {
 	return filePaths, nil
 }
 
-// ValidateConfiguration validates configuration files without loading them
-func (ccl *CueConfigLoader) ValidateConfiguration() error {
+// Validate validates files without loading them
+func (ccl *CueDataLoader) Validate() error {
 	if ccl.validator == nil {
 		return fmt.Errorf("schema validator not available")
 	}
 
 	filePaths, err := ccl.collectCueFiles()
 	if err != nil {
-		return fmt.Errorf("failed to collect CUE files: %w", err)
+		return fmt.Errorf("collect CUE files: %w", err)
 	}
 
 	for _, filePath := range filePaths {
@@ -158,7 +159,7 @@ func (ccl *CueConfigLoader) ValidateConfiguration() error {
 
 		values, err := ccl.ctx.BuildInstances(buildInstances)
 		if err != nil {
-			return fmt.Errorf("failed to build CUE instance for '%s': %w", filePath, err)
+			return fmt.Errorf("build CUE instance for '%s': %w", filePath, err)
 		}
 
 		if len(values) != 1 {
@@ -172,10 +173,10 @@ func (ccl *CueConfigLoader) ValidateConfiguration() error {
 
 		valueStr, err := value.MarshalJSON()
 		if err != nil {
-			return fmt.Errorf("failed to marshal value for validation in '%s': %w", filePath, err)
+			return fmt.Errorf("marshal value for validation in '%s': %w", filePath, err)
 		}
 
-		if err := ccl.validator.ValidateRawConfig(valueStr); err != nil {
+		if err := ccl.validator.ValidateRaw(valueStr); err != nil {
 			return fmt.Errorf("validation failed for '%s': %w", filePath, err)
 		}
 	}
@@ -184,7 +185,7 @@ func (ccl *CueConfigLoader) ValidateConfiguration() error {
 }
 
 // mergeTargets deeply merges a new target into an existing target with the same name
-func (ccl *CueConfigLoader) mergeTargets(existing types.AnyTarget, newTarget types.AnyTarget) error {
+func (ccl *CueDataLoader) mergeTargets(existing types.AnyTarget, newTarget types.AnyTarget) error {
 	// Merge metadata first
 	if err := utils.DeepMerge(existing.GetMetadata(), newTarget.GetMetadata()); err != nil {
 		return fmt.Errorf("merge metadata: %w", err)
@@ -200,90 +201,22 @@ func (ccl *CueConfigLoader) mergeTargets(existing types.AnyTarget, newTarget typ
 	case types.TYPE_FILE:
 		existingFile := existing.(*file.Target)
 		newFile := newTarget.(*file.Target)
-		return ccl.mergeFileTargets(existingFile.Config, newFile.Config)
+		return file.MergeConfig(existingFile.Config, newFile.Config)
 	case types.TYPE_DCONF:
 		existingDconf := existing.(*dconf.Target)
 		newDconf := newTarget.(*dconf.Target)
-		return ccl.mergeDconfTargets(existingDconf.Config, newDconf.Config)
+		return dconf.MergeConfig(existingDconf.Config, newDconf.Config)
 	case types.TYPE_SYSTEMD:
 		existingSystemd := existing.(*systemd.Target)
 		newSystemd := newTarget.(*systemd.Target)
-		return ccl.mergeSystemdTargets(existingSystemd.Config, newSystemd.Config)
+		return systemd.MergeConfig(existingSystemd.Config, newSystemd.Config)
 	default:
 		return fmt.Errorf("unsupported target type for merging: %s", existing.GetType())
 	}
 }
 
-// mergeFileTargets merges file target configurations using map merging
-func (ccl *CueConfigLoader) mergeFileTargets(existing, newTarget *file.Config) error {
-	// Merge all the map-based content
-	if err := utils.DeepMerge(existing.Content, newTarget.Content); err != nil {
-		return fmt.Errorf("merge content: %w", err)
-	}
-	if err := utils.DeepMerge(existing.Options, newTarget.Options); err != nil {
-		return fmt.Errorf("merge options: %w", err)
-	}
-
-	// Update scalar fields (new values override existing ones if non-empty)
-	if newTarget.Path != "" {
-		existing.Path = newTarget.Path
-	}
-	if newTarget.Format != "" {
-		existing.Format = newTarget.Format
-	}
-	if newTarget.Owner != "" {
-		existing.Owner = newTarget.Owner
-	}
-	if newTarget.Group != "" {
-		existing.Group = newTarget.Group
-	}
-	if newTarget.Mode != "" {
-		existing.Mode = newTarget.Mode
-	}
-	if newTarget.Backup {
-		existing.Backup = true
-	}
-
-	return nil
-}
-
-// mergeDconfTargets merges dconf target configurations using map merging
-func (ccl *CueConfigLoader) mergeDconfTargets(existing, newTarget *dconf.Config) error {
-	if err := utils.DeepMerge(existing.Settings, newTarget.Settings); err != nil {
-		return fmt.Errorf("merge settings: %w", err)
-	}
-
-	if newTarget.Schema != "" {
-		existing.Schema = newTarget.Schema
-	}
-	if newTarget.User != "" {
-		existing.User = newTarget.User
-	}
-
-	return nil
-}
-
-// mergeSystemdTargets merges systemd target configurations using map merging
-func (ccl *CueConfigLoader) mergeSystemdTargets(existing, newTarget *systemd.Config) error {
-	if err := utils.DeepMerge(existing.Properties, newTarget.Properties); err != nil {
-		return fmt.Errorf("merge properties: %w", err)
-	}
-
-	if newTarget.Unit != "" {
-		existing.Unit = newTarget.Unit
-	}
-	if newTarget.Section != "" {
-		existing.Section = newTarget.Section
-	}
-	if newTarget.Reload {
-		existing.Reload = true
-	}
-
-	return nil
-}
-
 // loadAndBuildCUE loads and builds a CUE instance from file
-func (ccl *CueConfigLoader) loadAndBuildCUE(workingDir, targetFile string) (cue.Value, error) {
+func (ccl *CueDataLoader) loadAndBuildCUE(workingDir, targetFile string) (cue.Value, error) {
 	instances := load.Instances([]string{targetFile}, &load.Config{
 		Dir: workingDir,
 	})
@@ -317,7 +250,7 @@ type CommonTargetFields struct {
 }
 
 // decodeCUEValue decodes a CUE value into SystemConfig
-func (ccl *CueConfigLoader) decodeCUEValue(value cue.Value) (*types.SystemConfig, error) {
+func (ccl *CueDataLoader) decodeCUEValue(value cue.Value) (*types.SystemConfig, error) {
 	var fileConfig types.SystemConfig
 	fileConfig.Targets = []types.AnyTarget{}
 	fileConfig.Variables = make(map[string]interface{})
@@ -359,7 +292,7 @@ func (ccl *CueConfigLoader) decodeCUEValue(value cue.Value) (*types.SystemConfig
 }
 
 // decodeTarget decodes a single target from CUE value
-func (ccl *CueConfigLoader) decodeTarget(targetValue cue.Value) (types.AnyTarget, error) {
+func (ccl *CueDataLoader) decodeTarget(targetValue cue.Value) (types.AnyTarget, error) {
 	// Decode common fields
 	var commonFields CommonTargetFields
 
@@ -383,7 +316,7 @@ func (ccl *CueConfigLoader) decodeTarget(targetValue cue.Value) (types.AnyTarget
 }
 
 // createTarget creates a target directly without registry - simplified implementation
-func (ccl *CueConfigLoader) createTarget(commonFields CommonTargetFields, configValue cue.Value) (types.AnyTarget, error) {
+func (ccl *CueDataLoader) createTarget(commonFields CommonTargetFields, configValue cue.Value) (types.AnyTarget, error) {
 	// Create and decode target config based on type
 	switch commonFields.Type {
 	case types.TYPE_FILE:

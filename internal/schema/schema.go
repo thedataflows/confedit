@@ -1,4 +1,4 @@
-package config
+package schema
 
 import (
 	"embed"
@@ -32,7 +32,7 @@ func NewSchemaValidator(schemaFilePath ...string) (*SchemaValidator, error) {
 		if _, err := os.Stat(schemaFilePath[0]); err == nil {
 			schemaData, err = os.ReadFile(schemaFilePath[0])
 			if err != nil {
-				log.Logger().Warn().Err(err).Str("schema", schemaFilePath[0]).Msg("Failed to read custom schema, falling back to embedded schema")
+				log.Logger().Warn().Err(err).Str("schema", schemaFilePath[0]).Msg("cannot read custom schema, falling back to embedded schema")
 			} else {
 				log.Debugf("schema", "Using custom schema '%s'", schemaFilePath[0])
 			}
@@ -63,7 +63,7 @@ func NewSchemaValidator(schemaFilePath ...string) (*SchemaValidator, error) {
 }
 
 // ValidateConfig validates a SystemConfig against the schema
-func (sv *SchemaValidator) ValidateConfig(config *types.SystemConfig) error {
+func (sv *SchemaValidator) Validate(config *types.SystemConfig) error {
 	// Convert config to CUE value
 	configValue := sv.ctx.Encode(config)
 	if err := configValue.Err(); err != nil {
@@ -91,7 +91,7 @@ func (sv *SchemaValidator) ValidateConfig(config *types.SystemConfig) error {
 }
 
 // ValidateRawConfig validates raw configuration data against the schema
-func (sv *SchemaValidator) ValidateRawConfig(data []byte) error {
+func (sv *SchemaValidator) ValidateRaw(data []byte) error {
 	// Parse the raw data as CUE
 	configValue := sv.ctx.CompileBytes(data)
 	if err := configValue.Err(); err != nil {
@@ -101,7 +101,7 @@ func (sv *SchemaValidator) ValidateRawConfig(data []byte) error {
 	// Get the SystemConfig schema
 	systemConfigSchema := sv.schema.LookupPath(cue.ParsePath("#SystemConfig"))
 	if err := systemConfigSchema.Err(); err != nil {
-		return fmt.Errorf("failed to find SystemConfig schema: %w", err)
+		return fmt.Errorf("find SystemConfig schema: %w", err)
 	}
 
 	// Unify the config with the schema

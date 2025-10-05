@@ -45,8 +45,8 @@ func (f *Feature) NewTarget(name string, config interface{}) (types.AnyTarget, e
 	}, nil
 }
 
-// ValidateConfig validates the dconf-specific configuration
-func (f *Feature) ValidateConfig(config interface{}) error {
+// Validate validates the dconf-specific configuration
+func (f *Feature) Validate(config interface{}) error {
 	dconfConfig, ok := config.(*Config)
 	if !ok {
 		return fmt.Errorf("invalid config type for dconf target, expected *dconf.Config")

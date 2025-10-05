@@ -2,13 +2,13 @@ package formats
 
 import "io"
 
-// Parser defines the interface for configuration file format parsers
+// Parser defines the interface for file format parsers
 // Each format (ini, yaml, toml, json, xml) implements this interface
 type Parser interface {
-	// Unmarshal parses the configuration data from bytes into a map
+	// Unmarshal parses the data from bytes into a map
 	Unmarshal(data []byte) (map[string]interface{}, error)
 
-	// Marshal serializes the configuration map into the format and writes to the writer
+	// Marshal serializes the data map into the format and writes to the writer
 	Marshal(data map[string]interface{}, writer io.Writer) error
 }
 

@@ -28,12 +28,12 @@ const (
 	FORMAT_XML  = "xml"
 )
 
-// GenerateCmd generates a .cue config file from the diff between two executor targets
+// GenerateCmd generates a .cue data file from the diff between two executor targets
 type GenerateCmd struct {
 	Source      []string `arg:"" help:"Source and target executor specifications (format: type:path)"`
 	Type        string   `short:"t" required:"" help:"Type of the target executor" enum:"file,dconf,systemd,sed"`
 	Name        string   `short:"n" help:"Name for the generated target"`
-	Output      string   `short:"o" help:"Output file path for the generated .cue config"`
+	Output      string   `short:"o" help:"Output file path for the generated .cue data"`
 	Identifiers string   `help:"Target identifiers in flattened format (e.g., options.use_spacing=true,backup=false,metadata.custom=value)"`
 	FileFormat  string   `help:"File format for file targets (e.g., ini, yaml, toml, json, xml). Work only with file targets. Overrides auto-detected format."`
 	registry    *features.Registry
@@ -46,7 +46,7 @@ func (c *GenerateCmd) Run(ctx *kong.Context, cli *CLI) error {
 		return fmt.Errorf("exactly two arguments required: source and target executor specifications")
 	}
 
-	log.Infof(PKG_CMD, "Generating configuration from diff between '%s' and '%s'", c.Source[0], c.Source[1])
+	log.Infof(PKG_CMD, "Generating diff between '%s' and '%s'", c.Source[0], c.Source[1])
 
 	if c.Name == "" {
 		c.Name = normalizeNameFromSource(c.Source[1])
@@ -59,7 +59,7 @@ func (c *GenerateCmd) Run(ctx *kong.Context, cli *CLI) error {
 	}
 
 	sourceTarget := c.createTarget(c.Source[0])
-	sourceState, err := sourceExecutor.GetCurrentState(sourceTarget)
+	sourceState, err := sourceExecutor.CurrentState(sourceTarget)
 	if err != nil {
 		return fmt.Errorf("get source state: %w", err)
 	}
@@ -71,7 +71,7 @@ func (c *GenerateCmd) Run(ctx *kong.Context, cli *CLI) error {
 	}
 
 	destTarget := c.createTarget(c.Source[1])
-	destState, err := destExecutor.GetCurrentState(destTarget)
+	destState, err := destExecutor.CurrentState(destTarget)
 	if err != nil {
 		// If destination doesn't exist, use empty state
 		destState = make(map[string]interface{})
@@ -84,8 +84,8 @@ func (c *GenerateCmd) Run(ctx *kong.Context, cli *CLI) error {
 		return nil
 	}
 
-	// Generate CUE configuration
-	cueConfig := c.generateSimpleCUE(c.Source[1], diff)
+	// Generate CUE data
+	cueData := c.generateSimpleCUE(c.Source[1], diff)
 
 	// Determine output path
 	outputPath := c.Output
@@ -102,11 +102,11 @@ func (c *GenerateCmd) Run(ctx *kong.Context, cli *CLI) error {
 	}
 
 	// Write output
-	if err := c.writeOutput(outputPath, cueConfig); err != nil {
+	if err := c.writeOutput(outputPath, cueData); err != nil {
 		return fmt.Errorf("write output to %s: %w", outputPath, err)
 	}
 
-	log.Infof(PKG_CMD, "Successfully generated configuration file: %s", outputPath)
+	log.Infof(PKG_CMD, "Successfully generated: %s", outputPath)
 	return nil
 }
 
@@ -183,7 +183,7 @@ func (c *GenerateCmd) valuesEqual(a, b interface{}) bool {
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 
-// generateSimpleCUE generates a simple CUE configuration using CUE encoder
+// generateSimpleCUE generates a simple CUE data using CUE encoder
 func (c *GenerateCmd) generateSimpleCUE(targetPath string, diff map[string]interface{}) string {
 	// Create the data structure
 	output := map[string]interface{}{
@@ -280,7 +280,7 @@ func (c *GenerateCmd) createExecutor(execType string) (engine.Executor, error) {
 	return c.registry.Executor(execType)
 }
 
-// writeOutput writes the generated CUE config to the output file
+// writeOutput writes the generated CUE data to the output file
 func (c *GenerateCmd) writeOutput(outputPath, content string) error {
 	// Ensure output directory exists
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {

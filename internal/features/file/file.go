@@ -14,7 +14,7 @@ import (
 	"github.com/thedataflows/confedit/internal/types"
 )
 
-// Feature implements the features.Feature interface for file configuration targets
+// Feature implements the features.Feature interface for file targets
 type Feature struct {
 	registry *formats.Registry
 	executor engine.Executor
@@ -62,8 +62,8 @@ func (f *Feature) NewTarget(name string, config interface{}) (types.AnyTarget, e
 	}, nil
 }
 
-// ValidateConfig validates the file-specific configuration
-func (f *Feature) ValidateConfig(config interface{}) error {
+// Validate validates the file-specific configuration
+func (f *Feature) Validate(config interface{}) error {
 	fileConfig, ok := config.(*Config)
 	if !ok {
 		return fmt.Errorf("invalid config type for file target, expected *file.Config")

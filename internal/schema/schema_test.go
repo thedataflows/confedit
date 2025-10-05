@@ -1,7 +1,6 @@
-package config
+package schema
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +31,7 @@ func (s *SchemaTestSuite) TestNewSchemaValidator() {
 	assert.NotNil(s.T(), validator)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_ValidFileConfig() {
+func (s *SchemaTestSuite) TestValidate_ValidFileConfig() {
 	validConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -51,11 +50,11 @@ func (s *SchemaTestSuite) TestValidateConfig_ValidFileConfig() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(validConfig)
+	err := s.validator.Validate(validConfig)
 	assert.NoError(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_InvalidFileConfig_MissingPath() {
+func (s *SchemaTestSuite) TestValidate_InvalidFileConfig_MissingPath() {
 	invalidConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -74,11 +73,11 @@ func (s *SchemaTestSuite) TestValidateConfig_InvalidFileConfig_MissingPath() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(invalidConfig)
+	err := s.validator.Validate(invalidConfig)
 	assert.Error(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_InvalidFileConfig_MissingFormat() {
+func (s *SchemaTestSuite) TestValidate_InvalidFileConfig_MissingFormat() {
 	invalidConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -97,11 +96,11 @@ func (s *SchemaTestSuite) TestValidateConfig_InvalidFileConfig_MissingFormat() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(invalidConfig)
+	err := s.validator.Validate(invalidConfig)
 	assert.Error(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_InvalidType() {
+func (s *SchemaTestSuite) TestValidate_InvalidType() {
 	invalidConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -116,11 +115,11 @@ func (s *SchemaTestSuite) TestValidateConfig_InvalidType() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(invalidConfig)
+	err := s.validator.Validate(invalidConfig)
 	assert.Error(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_ValidWithVariables() {
+func (s *SchemaTestSuite) TestValidate_ValidWithVariables() {
 	validConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -144,11 +143,11 @@ func (s *SchemaTestSuite) TestValidateConfig_ValidWithVariables() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(validConfig)
+	err := s.validator.Validate(validConfig)
 	assert.NoError(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_ValidWithHooks() {
+func (s *SchemaTestSuite) TestValidate_ValidWithHooks() {
 	validConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -177,25 +176,25 @@ func (s *SchemaTestSuite) TestValidateConfig_ValidWithHooks() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(validConfig)
+	err := s.validator.Validate(validConfig)
 	assert.NoError(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_EmptyConfig() {
+func (s *SchemaTestSuite) TestValidate_EmptyConfig() {
 	emptyConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{},
 	}
 
-	err := s.validator.ValidateConfig(emptyConfig)
+	err := s.validator.Validate(emptyConfig)
 	assert.NoError(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_NilConfig() {
-	err := s.validator.ValidateConfig(nil)
+func (s *SchemaTestSuite) TestValidate_NilConfig() {
+	err := s.validator.Validate(nil)
 	assert.Error(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_ComplexFileConfig() {
+func (s *SchemaTestSuite) TestValidate_ComplexFileConfig() {
 	validConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -230,11 +229,11 @@ func (s *SchemaTestSuite) TestValidateConfig_ComplexFileConfig() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(validConfig)
+	err := s.validator.Validate(validConfig)
 	assert.NoError(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_MultipleTargets() {
+func (s *SchemaTestSuite) TestValidate_MultipleTargets() {
 	validConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -266,11 +265,11 @@ func (s *SchemaTestSuite) TestValidateConfig_MultipleTargets() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(validConfig)
+	err := s.validator.Validate(validConfig)
 	assert.NoError(s.T(), err)
 }
 
-func (s *SchemaTestSuite) TestValidateConfig_InvalidFormat() {
+func (s *SchemaTestSuite) TestValidate_InvalidFormat() {
 	invalidConfig := &types.SystemConfig{
 		Targets: []types.AnyTarget{
 			&file.Target{
@@ -289,14 +288,14 @@ func (s *SchemaTestSuite) TestValidateConfig_InvalidFormat() {
 		},
 	}
 
-	err := s.validator.ValidateConfig(invalidConfig)
+	err := s.validator.Validate(invalidConfig)
 	assert.Error(s.T(), err)
 }
 
 func TestSchemaValidator_RawConfig(t *testing.T) {
 	validator, err := NewSchemaValidator()
 	if err != nil {
-		t.Fatalf("Failed to create schema validator: %v", err)
+		t.Fatalf("create schema validator: %v", err)
 	}
 
 	// Test valid raw configuration
@@ -318,7 +317,7 @@ func TestSchemaValidator_RawConfig(t *testing.T) {
 		]
 	}`
 
-	err = validator.ValidateRawConfig([]byte(validRawConfig))
+	err = validator.ValidateRaw([]byte(validRawConfig))
 	if err != nil {
 		t.Errorf("Valid raw config should pass validation: %v", err)
 	}
@@ -333,33 +332,8 @@ func TestSchemaValidator_RawConfig(t *testing.T) {
 		]
 	}`
 
-	err = validator.ValidateRawConfig([]byte(invalidRawConfig))
+	err = validator.ValidateRaw([]byte(invalidRawConfig))
 	if err == nil {
 		t.Error("Invalid raw config should fail validation")
 	}
-}
-
-func TestCueConfigLoader_WithCustomSchema(t *testing.T) {
-	// Create a temporary schema file for testing
-	schemaFile := "/tmp/test_loader_schema.cue"
-	schemaContent := `package config
-#ConfigTarget: { name: string, type: "file" }
-#SystemConfig: { targets: [...#ConfigTarget] }`
-
-	err := os.WriteFile(schemaFile, []byte(schemaContent), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create temporary schema file: %v", err)
-	}
-	defer os.Remove(schemaFile)
-
-	// Test loader with custom schema
-	loader := NewCueConfigLoader("./testdata", schemaFile)
-
-	// Verify the loader was created (even if schema validation may fail)
-	if loader == nil {
-		t.Error("Loader should be created even with custom schema")
-	}
-
-	// Verify that validator was initialized (or warning was logged)
-	// This test mainly checks that the API works correctly
 }

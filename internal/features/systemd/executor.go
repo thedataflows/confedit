@@ -7,6 +7,7 @@ import (
 	"github.com/thedataflows/confedit/internal/engine"
 	"github.com/thedataflows/confedit/internal/state"
 	"github.com/thedataflows/confedit/internal/types"
+	"github.com/thedataflows/confedit/internal/utils"
 )
 
 // Executor implements the engine.Executor interface for systemd targets
@@ -17,7 +18,7 @@ func NewExecutor() engine.Executor {
 	return &Executor{}
 }
 
-// Apply applies the configuration changes to systemd
+// Apply applies the changes to systemd
 func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	if diff != nil && diff.IsEmpty() {
 		return nil
@@ -33,12 +34,19 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	}
 
 	if systemdTarget.GetConfig() == nil {
-		return fmt.Errorf("systemd target configuration is missing")
+		return fmt.Errorf("systemd target is missing")
 	}
 
 	unitFile := systemdTarget.GetConfig().Unit
 	if unitFile == "" {
 		return fmt.Errorf("systemd unit file not specified")
+	}
+
+	// Create backup if requested
+	if systemdTarget.GetConfig().Backup {
+		if err := utils.CreateBackup(unitFile); err != nil {
+			return fmt.Errorf("create backup: %w", err)
+		}
 	}
 
 	// Update unit file with changes from target properties
@@ -64,7 +72,7 @@ func (e *Executor) Apply(target types.AnyTarget, diff *state.ConfigDiff) error {
 	return nil
 }
 
-// Validate checks if the target configuration is valid
+// Validate checks if the target is valid
 func (e *Executor) Validate(target types.AnyTarget) error {
 	if target.GetType() != types.TYPE_SYSTEMD {
 		return fmt.Errorf("expected systemd target, got %s", target.GetType())
@@ -76,7 +84,7 @@ func (e *Executor) Validate(target types.AnyTarget) error {
 	}
 
 	if systemdTarget.GetConfig() == nil {
-		return fmt.Errorf("systemd target configuration is missing")
+		return fmt.Errorf("systemd target is missing")
 	}
 
 	if systemdTarget.GetConfig().Unit == "" {
@@ -85,25 +93,14 @@ func (e *Executor) Validate(target types.AnyTarget) error {
 	return nil
 }
 
-// GetCurrentState retrieves the current state from systemd
-func (e *Executor) GetCurrentState(target types.AnyTarget) (map[string]interface{}, error) {
-	if target.GetType() != types.TYPE_SYSTEMD {
-		return nil, fmt.Errorf("expected systemd target, got %s", target.GetType())
+// CurrentState retrieves the current state from systemd
+func (e *Executor) CurrentState(target types.AnyTarget) (map[string]interface{}, error) {
+	if err := e.Validate(target); err != nil {
+		return nil, err
 	}
 
-	systemdTarget, ok := target.(*Target)
-	if !ok {
-		return nil, fmt.Errorf("target is not a systemd target")
-	}
-
-	if systemdTarget.GetConfig() == nil {
-		return nil, fmt.Errorf("systemd target configuration is missing")
-	}
-
+	systemdTarget := target.(*Target)
 	unitFile := systemdTarget.GetConfig().Unit
-	if unitFile == "" {
-		return make(map[string]interface{}), fmt.Errorf("systemd unit file not specified")
-	}
 
 	// Get unit file status
 	cmd := exec.Command("systemctl", "show", unitFile)

@@ -3,21 +3,21 @@ package internal_test
 import (
 	"testing"
 
-	"github.com/thedataflows/confedit/internal/config"
 	"github.com/thedataflows/confedit/internal/features"
 	"github.com/thedataflows/confedit/internal/features/dconf"
 	"github.com/thedataflows/confedit/internal/features/file"
 	"github.com/thedataflows/confedit/internal/features/sed"
 	"github.com/thedataflows/confedit/internal/features/systemd"
+	"github.com/thedataflows/confedit/internal/loader"
 	"github.com/thedataflows/confedit/internal/state"
 	"github.com/thedataflows/confedit/internal/types"
 )
 
 // TestInternalPackagesIntegration verifies that internal packages are correctly moved and work together
 func TestInternalPackagesIntegration(t *testing.T) {
-	// Test config package
-	loader := config.NewCueConfigLoader("../testdata/01-example-config.cue", "")
-	if loader == nil {
+	// Test loader package
+	l := loader.NewCueDataLoader("../testdata/01-example-config.cue", "")
+	if l == nil {
 		t.Fatal("config loader should not be nil")
 	}
 
@@ -66,7 +66,7 @@ func TestInternalPackagesIntegration(t *testing.T) {
 	// Test getting executor from registry
 	executor, err := registry.Executor(types.TYPE_FILE)
 	if err != nil {
-		t.Fatalf("failed to get file executor: %v", err)
+		t.Fatalf("get file executor: %v", err)
 	}
 	if executor == nil {
 		t.Fatal("executor should not be nil")
@@ -85,7 +85,7 @@ func TestInternalPackagesIsolation(t *testing.T) {
 	// If internal packages incorrectly imported pkg/, this would fail to compile
 
 	// Create instances of each internal package component
-	_ = config.NewCueConfigLoader("", "")
+	_ = loader.NewCueDataLoader("", "")
 	_ = state.NewManager("")
 	_ = features.NewRegistry()
 

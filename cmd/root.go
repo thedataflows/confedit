@@ -19,7 +19,7 @@ type Globals struct {
 	LogLevel  string `help:"Log level (trace,debug,info,warn,error)" default:"info"`
 	LogFormat string `help:"Log format (console,json)" default:"console"`
 	DryRun    bool   `help:"Show what would be deleted without actually editing" default:"false"`
-	Config    string `short:"c" help:"Path to CUE configuration file or directory" default:"config/"`
+	Config    string `short:"c" help:"Path to CUE data file or directory" default:"config/"`
 	Schema    string `help:"Path to alternative CUE schema file. This will override the embedded schema. Use mainly for developing schema changes."`
 	StateDir  string `help:"Directory for state storage. Not yet used." default:".state/"`
 }
@@ -28,10 +28,10 @@ type Globals struct {
 type CLI struct {
 	Globals  `kong:"embed"`
 	Version  VersionCmd  `cmd:"" help:"Show version information"`
-	Apply    ApplyCmd    `cmd:"" help:"Apply configuration to target system"`
-	Status   StatusCmd   `cmd:"" help:"Check configuration status on target system"`
-	List     ListCmd     `cmd:"" help:"List configured targets"`
-	Generate GenerateCmd `cmd:"" help:"Generate CUE config from diff between source and target of specified type"`
+	Apply    ApplyCmd    `cmd:"" help:"Apply changes to target system"`
+	Status   StatusCmd   `cmd:"" help:"Check status on target system"`
+	List     ListCmd     `cmd:"" help:"List defined targets"`
+	Generate GenerateCmd `cmd:"" help:"Generate CUE data from diff between source and target of specified type"`
 }
 
 // AfterApply is called after Kong parses the CLI but before the command runs
@@ -66,7 +66,7 @@ func Run(version string, args []string) error {
 
 	parser, err := kong.New(&cli,
 		kong.Name(APP_NAME),
-		kong.Description("A CLI tool for editing configuration files"),
+		kong.Description("A CLI tool for changing (almost) anything using CUE language"),
 		kong.Configuration(kongyaml.Loader),
 		kong.UsageOnError(),
 		kong.DefaultEnvars(""),

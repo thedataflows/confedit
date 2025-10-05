@@ -30,10 +30,10 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// Target is a type alias for sed-based configuration targets
+// Target is a type alias for sed targets
 type Target = types.BaseTarget[*Config]
 
-// NewTarget creates a new sed configuration target
+// NewTarget creates a new sed target
 func NewTarget(name, path string, commands []string) *Target {
 	return &Target{
 		Name:     name,
